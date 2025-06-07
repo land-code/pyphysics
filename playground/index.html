@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Simulación Física con Pyodide y Monaco</title>
+<style>
+  body { display: flex; gap: 10px; }
+  #editor { width: 50vw; height: 90vh; border: 1px solid #ccc; }
+  #canvas { border: 1px solid black; }
+  #controls { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.39.0/min/vs/loader.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+</head>
+<body>
+
+<div id="editor"></div>
+<div>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div id="controls">
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+    <button id="resetBtn">Reset</button>
+  </div>
+</div>
+
+<script>
+  let pyodide = null;
+  let editor = null;
+  let running = false;
+  let loopHandle = null;
+
+  // Inicializar Monaco
+  require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.39.0/min/vs' }});
+  require(['vs/editor/editor.main'], function () {
+    editor = monaco.editor.create(document.getElementById('editor'), {
+      value: `# Código que escribe el usuario
+from math import sin
+
+# Setup de la simulación
+def setup():
+    global t
+    t = 0
+
+# Paso de la simulación
+def step(dt):
+    global t
+    t += dt
+    # Aquí deberías actualizar estado, posiciones, etc.
+
+# Función para dibujar (recibe contexto 2D de canvas)
+def draw(ctx):
+    ctx.clearRect(0, 0, 800, 600)
+    ctx.fillStyle = 'blue'
+    x = 400 + 100 * sin(t * 2)
+    y = 300
+    ctx.beginPath()
+    ctx.arc(x, y, 30, 0, 6.28)
+    ctx.fill()
+`,
+      language: 'python',
+      automaticLayout: true
+    });
+  });
+
+  async function loadPyodideAndPackages() {
+    pyodide = await loadPyodide();
+    // Aquí cargar paquetes si necesitas, ejemplo:
+    // await pyodide.loadPackage(['numpy']);
+  }
+
+  loadPyodideAndPackages();
+
+
+  document.getElementById('startBtn').onclick = async () => {
+    if (!pyodide) {
+      alert("Pyodide aún no está listo.");
+      return;
+    }
+    // Tu código para iniciar simulación
+  };
+
+  function runPython(code) {
+    return pyodide.runPythonAsync(code);
+  }
+
+  async function startSimulation() {
+    if (running) return;
+    running = true;
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('stopBtn').disabled = false;
+
+    // Ejecutar el código para definir setup, step, draw
+    const code = editor.getValue();
+    try {
+      await pyodide.runPythonAsync(code);
+      // Ejecutar setup()
+      await pyodide.runPythonAsync('setup()');
+    } catch (e) {
+      alert("Error en código Python:\n" + e);
+      running = false;
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('stopBtn').disabled = true;
+      return;
+    }
+
+    const ctx = document.getElementById('canvas').getContext('2d');
+
+    // Loop de simulación con requestAnimationFrame para sincronizar fps con pantalla
+    function loop(timestamp) {
+      if (!running) return;
+
+      // dt aproximado en segundos
+      let dt = 1 / 60;
+
+      // Ejecutar paso y dibujado
+      pyodide.runPython(`
+step(${dt})
+draw(__js_ctx)
+      `);
+
+      requestAnimationFrame(loop);
+    }
+
+    // Pasar el contexto canvas 2D a Pyodide como variable global __js_ctx
+    pyodide.globals.set("__js_ctx", ctx);
+
+    requestAnimationFrame(loop);
+  }
+
+  function stopSimulation() {
+    running = false;
+    document.getElementById('startBtn').disabled = false;
+    document.getElementById('stopBtn').disabled = true;
+  }
+
+  async function resetSimulation() {
+    stopSimulation();
+    // Limpiar canvas
+    const ctx = document.getElementById('canvas').getContext('2d');
+    ctx.clearRect(0, 0, 800, 600);
+
+    // Re-ejecutar código para resetear variables
+    const code = editor.getValue();
+    try {
+      await pyodide.runPythonAsync(code);
+      await pyodide.runPythonAsync('setup()');
+    } catch (e) {
+      alert("Error en código Python:\n" + e);
+    }
+  }
+
+  // loadPyodideAndPackages();
+
+  document.getElementById('startBtn').onclick = startSimulation;
+  document.getElementById('stopBtn').onclick = stopSimulation;
+  document.getElementById('resetBtn').onclick = resetSimulation;
+</script>
+
+</body>
+</html>

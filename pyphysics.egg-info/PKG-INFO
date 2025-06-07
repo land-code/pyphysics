@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: pyphysics
+Version: 0.1.0
+Summary: Motor físico para simulaciones
+Home-page: https://github.com/land-code/pyphysics
+Author: David García Díaz
+Author-email: davidgrcdiaz@gmail.com
+Requires-Python: >=3.7
+Dynamic: author
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: requires-python
+Dynamic: summary

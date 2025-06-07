@@ -1,0 +1,12 @@
+setup.py
+physics/__init__.py
+physics/collisions.py
+physics/color.py
+physics/objects.py
+physics/rendering.py
+physics/vector.py
+physics/world.py
+pyphysics.egg-info/PKG-INFO
+pyphysics.egg-info/SOURCES.txt
+pyphysics.egg-info/dependency_links.txt
+pyphysics.egg-info/top_level.txt

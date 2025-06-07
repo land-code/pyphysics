@@ -1,3 +1,4 @@
+from PIL import ImageDraw, ImageFont
 import math
 
 from .vector import Vector
@@ -102,3 +103,24 @@ class InclinedPlane(StaticObject):
     def draw(self, draw):
         draw.line([(self.start_point.x, self.start_point.y), (self.end_point.x, self.end_point.y)],
                   fill=self.color.to_rgb(), width=2)
+
+
+class LabelTime(StaticObject):
+    def __init__(self, position=Vector(10, 10), color=(255, 255, 255), font_path=None, font_size=18):
+        super().__init__(color=color)
+        self.position = position
+        self.font_size = font_size
+        self.font_path = font_path
+        self.font = ImageFont.load_default(
+        ) if font_path is None else ImageFont.truetype(font_path, font_size)
+        self.time = 0.0
+        self.text = "Time: 0.00 s"
+
+    def update(self, dt):
+        self.time += dt
+        print(self.time)
+        self.text = f"Time: {self.time:.2f} s"
+
+    def draw(self, draw):
+        draw.text((self.position.x, self.position.y),
+                  self.text, font=self.font, fill=self.color)
