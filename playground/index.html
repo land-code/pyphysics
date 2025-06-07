@@ -2,160 +2,171 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<title>Simulación Física con Pyodide y Monaco</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Editor con dphysicsengine + Monaco + Pyodide</title>
+
 <style>
-  body { display: flex; gap: 10px; }
-  #editor { width: 50vw; height: 90vh; border: 1px solid #ccc; }
-  #canvas { border: 1px solid black; }
-  #controls { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+  body, html {
+    margin: 0; padding: 0; height: 100%;
+    display: flex; flex-direction: row; font-family: sans-serif;
+  }
+  #editor {
+    width: 50vw; height: 100vh;
+  }
+  #right-panel {
+    width: 50vw; height: 100vh;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start;
+    padding: 10px;
+    box-sizing: border-box;
+  }
+  #canvas {
+    border: 1px solid #aaa;
+    width: 800px; height: 600px;
+  }
+  #buttons {
+    margin: 10px 0;
+  }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.39.0/min/vs/loader.js"></script>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
+<!-- Monaco loader -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs/loader.js"></script>
 </head>
 <body>
 
 <div id="editor"></div>
-<div>
-  <canvas id="canvas" width="800" height="600"></canvas>
-  <div id="controls">
-    <button id="startBtn">Start</button>
-    <button id="stopBtn" disabled>Stop</button>
-    <button id="resetBtn">Reset</button>
+
+<div id="right-panel">
+  <div id="buttons">
+    <button id="run-btn">Run</button>
+    <button id="stop-btn">Stop</button>
   </div>
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div id="status">Status: <span id="status-text">Idle</span></div>
 </div>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+
 
 <script>
-  let pyodide = null;
-  let editor = null;
-  let running = false;
-  let loopHandle = null;
-
-  // Inicializar Monaco
-  require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.39.0/min/vs' }});
-  require(['vs/editor/editor.main'], function () {
+  // Cargar Monaco Editor
+  require.config({ paths: { 'vs': 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs' }});
+  let editor;
+  require(['vs/editor/editor.main'], function() {
     editor = monaco.editor.create(document.getElementById('editor'), {
-      value: `# Código que escribe el usuario
-from math import sin
+      value: `# Escribe tu código aquí
 
-# Setup de la simulación
+from dphysicsengine import World, Ball, Vector
+
+world = World(800, 600)
+
+# Añadir una bola
+ball = Ball(position=Vector(100, 100), radius=20, mass=10)
+world.add_object(ball)
+
+t = 0
+
 def setup():
     global t
     t = 0
 
-# Paso de la simulación
 def step(dt):
     global t
     t += dt
-    # Aquí deberías actualizar estado, posiciones, etc.
+    world.update(dt)
 
-# Función para dibujar (recibe contexto 2D de canvas)
 def draw(ctx):
     ctx.clearRect(0, 0, 800, 600)
-    ctx.fillStyle = 'blue'
-    x = 400 + 100 * sin(t * 2)
-    y = 300
-    ctx.beginPath()
-    ctx.arc(x, y, 30, 0, 6.28)
-    ctx.fill()
+    for obj in world.get_objects():
+        obj.draw(ctx)
 `,
       language: 'python',
-      automaticLayout: true
+      theme: 'vs-light',
+      automaticLayout: true,
     });
   });
 
+  // Pyodide setup
+  let pyodide = null;
+  let running = false;
+  let intervalId = null;
+
   async function loadPyodideAndPackages() {
-    pyodide = await loadPyodide();
-    // Aquí cargar paquetes si necesitas, ejemplo:
-    // await pyodide.loadPackage(['numpy']);
+    document.getElementById('status-text').textContent = 'Loading Pyodide...';
+    pyodide = await loadPyodide({
+      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.23.4/full/",
+    });
+    document.getElementById('status-text').textContent = 'Installing dphysicsengine...';
+    await pyodide.loadPackage("micropip");
+    // await pyodide.runPythonAsync(`
+    //   import micropip
+    //   await micropip.install('dphysicsengine')
+    // `);
+    // document.getElementById('status-text').textContent = 'Ready';
   }
 
-  loadPyodideAndPackages();
 
-
-  document.getElementById('startBtn').onclick = async () => {
+  // Ejecutar código del editor con la simulación
+  async function runCode() {
     if (!pyodide) {
-      alert("Pyodide aún no está listo.");
-      return;
+      await loadPyodideAndPackages();
     }
-    // Tu código para iniciar simulación
-  };
-
-  function runPython(code) {
-    return pyodide.runPythonAsync(code);
-  }
-
-  async function startSimulation() {
-    if (running) return;
-    running = true;
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('stopBtn').disabled = false;
-
-    // Ejecutar el código para definir setup, step, draw
-    const code = editor.getValue();
+    document.getElementById('status-text').textContent = 'Running simulation';
     try {
+      const code = editor.getValue();
+      // Define funciones globales para step y draw, que usaremos desde JS
       await pyodide.runPythonAsync(code);
-      // Ejecutar setup()
-      await pyodide.runPythonAsync('setup()');
-    } catch (e) {
-      alert("Error en código Python:\n" + e);
-      running = false;
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('stopBtn').disabled = true;
-      return;
-    }
+      // Obtener referencias a las funciones Python
+      const setup = pyodide.globals.get('setup');
+      const step = pyodide.globals.get('step');
+      const draw = pyodide.globals.get('draw');
 
-    const ctx = document.getElementById('canvas').getContext('2d');
+      // Inicializar la simulación
+      setup();
 
-    // Loop de simulación con requestAnimationFrame para sincronizar fps con pantalla
-    function loop(timestamp) {
-      if (!running) return;
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      const FPS = 60;
+      const DT = 1 / FPS;
 
-      // dt aproximado en segundos
-      let dt = 1 / 60;
+      running = true;
+      let lastTime = performance.now();
 
-      // Ejecutar paso y dibujado
-      pyodide.runPython(`
-step(${dt})
-draw(__js_ctx)
-      `);
+      function loop(time) {
+        if (!running) return;
+        const delta = (time - lastTime) / 1000;
+        lastTime = time;
 
+        step(DT);
+
+        // Limpiar y dibujar
+        draw(ctx);
+
+        requestAnimationFrame(loop);
+      }
       requestAnimationFrame(loop);
+
+    } catch (e) {
+      document.getElementById('status-text').textContent = 'Error: ' + e;
+      running = false;
     }
-
-    // Pasar el contexto canvas 2D a Pyodide como variable global __js_ctx
-    pyodide.globals.set("__js_ctx", ctx);
-
-    requestAnimationFrame(loop);
   }
 
   function stopSimulation() {
     running = false;
-    document.getElementById('startBtn').disabled = false;
-    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('status-text').textContent = 'Stopped';
   }
 
-  async function resetSimulation() {
+  document.getElementById('run-btn').addEventListener('click', () => {
+    if (!running) runCode();
+  });
+  document.getElementById('stop-btn').addEventListener('click', () => {
     stopSimulation();
-    // Limpiar canvas
-    const ctx = document.getElementById('canvas').getContext('2d');
-    ctx.clearRect(0, 0, 800, 600);
-
-    // Re-ejecutar código para resetear variables
-    const code = editor.getValue();
-    try {
-      await pyodide.runPythonAsync(code);
-      await pyodide.runPythonAsync('setup()');
-    } catch (e) {
-      alert("Error en código Python:\n" + e);
-    }
-  }
-
-  // loadPyodideAndPackages();
-
-  document.getElementById('startBtn').onclick = startSimulation;
-  document.getElementById('stopBtn').onclick = stopSimulation;
-  document.getElementById('resetBtn').onclick = resetSimulation;
+  });
 </script>
 
+<!-- Pyodide loader -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
 </body>
 </html>

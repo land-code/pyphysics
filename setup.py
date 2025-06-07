@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='pyphysics',
+    name='dphysicsengine',
     version='0.1.0',
     packages=find_packages(),
     description='Motor físico para simulaciones',
