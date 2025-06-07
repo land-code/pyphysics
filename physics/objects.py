@@ -1,4 +1,4 @@
-from PIL import ImageDraw, ImageFont
+from PIL import ImageFont
 import math
 
 from .vector import Vector

@@ -13,6 +13,7 @@ class FrameExporter:
         self.frame_count = 0
 
     def export_frame(self, world):
+        """Exporta a un archivo .ppm"""
         image = Image.new("RGB", (self.width, self.height),
                           self.bg_color.to_rgb())
         draw = ImageDraw.Draw(image)
@@ -23,3 +24,12 @@ class FrameExporter:
         image.save(filename)
         self.frame_count += 1
         print(f"Exported {filename}")
+
+    def get_frame_image(self, world):
+        """Devuelve un objeto PIL. Image con el frame renderizado en memoria (para renderizar en js)"""
+        image = Image.new("RGB", (self.width, self.height),
+                          self.bg_color.to_rgb())
+        draw = ImageDraw.Draw(image)
+        world.draw(draw)
+        self.frame_count += 1
+        return image
