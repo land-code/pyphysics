@@ -53,9 +53,11 @@
     editor = monaco.editor.create(document.getElementById('editor'), {
       value: `# Simulación simple con FrameExporter compatible en memoria y disco
 
+# Simulación simple con FrameExporter compatible en memoria y disco
+
 import io
 from physics.vector import Vector
-from physics.objects import Ball, InclinedPlane, Rectangle, LabelTime
+from physics.objects import Ball, InclinedPlane, Rectangle, LabelTime, Rectangle
 from physics.color import Color
 from physics.world import World
 from physics.rendering import FrameExporter
@@ -64,16 +66,25 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 DURATION = 5  # segundos
-SIM_FPS = 30
+SIM_FPS = 60
+VIDEO_FPS = 30
 DT = 1 / SIM_FPS
 
 world = World(SCREEN_WIDTH, SCREEN_HEIGHT, gravity=Vector(0, 500))
 
-ball1 = Ball(position=Vector(100, 100), radius=20, mass=10, color=Color(255, 0, 0), restitution=0.8, static_friction=0.7, kinetic_friction=0.5)
+ball1 = Ball(position=Vector(120, 70) + Vector(20, 20), radius=20, mass=10, color=Color(255, 0, 0), restitution=0.8, static_friction=0.7, kinetic_friction=0.5)
 ball1.set_label("Bola 1")
 world.add_object(ball1)
 
-plane1 = InclinedPlane(start_point=Vector(100, 400), end_point=Vector(700, 550), color=Color(200, 200, 200))
+ball2 = Ball(position=Vector(170, 120), radius=10, mass=10, color=Color(40, 40, 255), restitution=0.8, static_friction=0.7, kinetic_friction=0.5)
+ball2.set_label("Bola 2")
+world.add_object(ball2)
+
+rect1 = Rectangle(position=Vector(170, 80), width=60, height=40, mass=10, color=Color(40, 40, 255), restitution=0.8, static_friction=0.7, kinetic_friction=0.5)
+rect1.set_label("Rectangulo")
+world.add_object(rect1)
+
+plane1 = InclinedPlane(start_point=Vector(100, 400), end_point=Vector(700, 300), color=Color(70, 70, 255))
 world.add_object(plane1)
 
 frame_exporter = FrameExporter(width=SCREEN_WIDTH, height=SCREEN_HEIGHT)
@@ -84,7 +95,7 @@ def run_simulation():
     frames = []
     for i in range(DURATION * SIM_FPS):
         world.update(DT)
-        if i % 1 == 0:
+        if i % (SIM_FPS/VIDEO_FPS) == 0:
             image = frame_exporter.get_frame_image(world)
             buf = io.BytesIO()
             image.save(buf, format='PNG')
