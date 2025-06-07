@@ -4,3 +4,4 @@ frames/
 __pycache__
 dist/
 dphysicsengine.egg-info/
+pyphysics.egg-info/
