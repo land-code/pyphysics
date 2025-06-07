@@ -1,7 +1,7 @@
+import math
+
 from .vector import Vector
 from .color import Color
-
-import math
 
 class DynamicObject:
     def __init__(self, position, mass, color=Color(255, 255, 255), restitution=0.5, static_friction=0.5, kinetic_friction=0.3, velocity=Vector(0, 0)):

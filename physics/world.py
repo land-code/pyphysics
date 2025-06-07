@@ -1,7 +1,7 @@
-from .vector import Vector
-from .objects import DynamicObject, StaticObject, Ball, Rectangle, InclinedPlane
 from PIL import ImageFont
 
+from .vector import Vector
+from .objects import DynamicObject, StaticObject, Ball, Rectangle, InclinedPlane
 
 class World:
     def __init__(self, width, height, gravity=Vector(0, 9.8)):

@@ -1,7 +1,7 @@
-from .color import Color
-
 import os
 from PIL import Image, ImageDraw
+
+from .color import Color
 
 class FrameExporter:
     def __init__(self, output_dir="frames", width=800, height=600, bg_color=Color(0, 0, 0)):
