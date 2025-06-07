@@ -2,3 +2,5 @@ animation.mp4
 frames/
 .env/
 __pycache__
+dist/
+dphysicsengine.egg-info/
