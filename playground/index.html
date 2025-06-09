@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Editor con dphysicsengine + Monaco + Pyodide</title>
+<title>Playground dphysicsengine</title>
 
 <style>
   body, html {
@@ -52,8 +52,6 @@
   require(['vs/editor/editor.main'], function() {
     editor = monaco.editor.create(document.getElementById('editor'), {
       value: `# Simulación simple con FrameExporter compatible en memoria y disco
-
-# Simulación simple con FrameExporter compatible en memoria y disco
 
 import io
 from physics.vector import Vector
@@ -106,7 +104,7 @@ def run_simulation():
 
 `,
       language: 'python',
-      theme: 'vs-light',
+      theme: 'vs-dark',
       automaticLayout: true,
       minimap: { enabled: false },
       lineNumbers: 'on',
